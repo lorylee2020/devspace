@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exam Simulator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .correct {
+            color: green;
+            font-weight: bold;
+        }
+
+        .incorrect {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body class="bg-light">
+    <div class="container py-5">
+        <h1 class="mb-4 text-center">Exam Simulator</h1>
+
+        <!-- File Upload Input -->
+        <div class="mb-4">
+            <label for="fileUpload" class="form-label">Upload Questions File (.json):</label>
+            <input class="form-control" type="file" id="fileUpload" accept=".json">
+        </div>
+
+        <!-- Exam Selection Buttons -->
+        <div id="exam-selection" class="text-center">
+            <p>Select an exam:</p>
+            <div class="d-grid gap-2 col-6 mx-auto" id="exam-buttons">
+                <button class="btn btn-primary" onclick="startExam('Math')">Math Exam</button>
+                <button class="btn btn-secondary" onclick="startExam('English')">English Exam</button>
+                <button class="btn btn-success" onclick="startExam('Science')">Science Exam</button>
+                <button class="btn btn-danger" onclick="startExam('History')">History Exam</button>
+            </div>
+        </div>
+
+        <!-- Exam Question Display -->
+        <div id="exam-container" class="d-none">
+            <h2 id="exam-title" class="mt-4"></h2>
+            <div id="timer" class="mb-3 fw-bold">Time: 0s</div>
+            <div id="question-container"></div>
+            <div class="d-flex justify-content-between mt-3">
+                <button class="btn btn-outline-secondary" onclick="prevQuestion()">Previous</button>
+                <button class="btn btn-outline-secondary" onclick="nextQuestion()">Next</button>
+                <button class="btn btn-success" onclick="submitExam()">Submit Exam</button>
+            </div>
+        </div>
+
+        <!-- Results Display -->
+        <div id="results-container" class="d-none">
+            <h2 class="mt-4">Results</h2>
+            <div id="results"></div>
+            <div class="text-center mt-4">
+                <button class="btn btn-primary" onclick="location.reload()">Take Another Exam</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Exam Questions
+        let exams = {
+            Math: [
+                { q: "What is 2 + 2?", options: ["3", "4", "5", "6"], answer: 1 },
+                { q: "What is 10 / 2?", options: ["4", "5", "6", "8"], answer: 1 },
+            ],
+            English: [
+                { q: "Choose the correct spelling:", options: ["Recieve", "Receive", "Receeve", "Receve"], answer: 1 },
+                { q: "What is a synonym for 'happy'?", options: ["Sad", "Joyful", "Angry", "Tired"], answer: 1 },
+            ],
+            Science: [
+                { q: "Water boils at what temperature?", options: ["90°C", "100°C", "110°C", "120°C"], answer: 1 },
+                { q: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Venus", "Jupiter"], answer: 1 },
+            ],
+            History: [
+                { q: "Who discovered America?", options: ["Columbus", "Einstein", "Newton", "Tesla"], answer: 0 },
+                { q: "When was WW2?", options: ["1914-1918", "1939-1945", "1960-1965", "1800-1810"], answer: 1 },
+            ],
+        };
+
+        // Initialize state variables
+        let currentExam = [];
+        let selectedAnswers = [];
+        let currentQuestion = 0;
+        let timer = 0;
+        let timerInterval;
+
+        // Fisher-Yates Shuffle
+        function shuffleArray(arr) {
+            const shuffled = [...arr];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Start Exam Logic
+        function startExam(subject) {
+            currentExam = shuffleArray(exams[subject]);
+            selectedAnswers = Array(currentExam.length).fill(null);
+            document.getElementById("exam-title").textContent = subject + " Exam";
+            document.getElementById("exam-selection").classList.add("d-none");
+            document.getElementById("exam-container").classList.remove("d-none");
+            showQuestion();
+            timer = 0;
+            timerInterval = setInterval(() => {
+                timer++;
+                document.getElementById("timer").textContent = `Time: ${timer}s`;
+            }, 1000);
+        }
+
+        // Display Current Question
+        function showQuestion() {
+            const q = currentExam[currentQuestion];
+            const container = document.getElementById("question-container");
+            container.innerHTML = `
+        <div class='card'>
+          <div class='card-body'>
+            <h5 class='card-title'>Q${currentQuestion + 1}: ${q.q}</h5>
+            ${q.options.map((opt, i) => `
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="q${currentQuestion}" id="opt${i}" value="${i}" ${selectedAnswers[currentQuestion] === i ? "checked" : ""}>
+                <label class="form-check-label" for="opt${i}">
+                  ${opt}
+                </label>
+              </div>`).join("")}
+          </div>
+        </div>
+      `;
+
+            container.querySelectorAll("input[type=radio]").forEach(input => {
+                input.addEventListener("change", (e) => {
+                    selectedAnswers[currentQuestion] = parseInt(e.target.value);
+                });
+            });
+        }
+
+        // Navigate to Next Question
+        function nextQuestion() {
+            if (currentQuestion < currentExam.length - 1) {
+                currentQuestion++;
+                showQuestion();
+            }
+        }
+
+        // Navigate to Previous Question
+        function prevQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                showQuestion();
+            }
+        }
+
+        // Submit Exam and Show Results
+        function submitExam() {
+            clearInterval(timerInterval);
+            document.getElementById("exam-container").classList.add("d-none");
+            document.getElementById("results-container").classList.remove("d-none");
+            const results = document.getElementById("results");
+            results.innerHTML = currentExam.map((q, i) => {
+                const userAnswer = selectedAnswers[i];
+                const correct = q.answer;
+                const isCorrect = userAnswer === correct;
+                return `
+          <div class='card mb-3'>
+            <div class='card-body'>
+              <h5 class='card-title'>Q${i + 1}: ${q.q}</h5>
+              <p>Your answer: <span class='${isCorrect ? "correct" : "incorrect"}'>${q.options[userAnswer] || "No answer"}</span></p>
+              <p>Correct answer: <strong>${q.options[correct]}</strong></p>
+            </div>
+          </div>`;
+            }).join("");
+        }
+
+        // File Upload Handler for .json
+        document.getElementById('fileUpload').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const uploadedData = JSON.parse(e.target.result);
+                    exams = { ...exams, ...uploadedData };
+                    const buttonsContainer = document.getElementById("exam-buttons");
+                    for (const subject in uploadedData) {
+                        const btn = document.createElement("button");
+                        btn.className = "btn btn-outline-dark";
+                        btn.textContent = subject + " Exam";
+                        btn.onclick = () => startExam(subject);
+                        buttonsContainer.appendChild(btn);
+                    }
+                } catch (err) {
+                    alert("Failed to parse JSON file.");
+                }
+            };
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+
+</html>
