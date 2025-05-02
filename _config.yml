@@ -1,5 +1,1 @@
 theme: minima
-collections:
-    blog:
-        output: true
-        permalink: /blog/:name/
